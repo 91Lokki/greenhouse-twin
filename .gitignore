@@ -7,10 +7,16 @@ xcuserdata/
 
 # Xcode build artifacts
 DerivedData/
+.DerivedData/
 .build/
 
 # Swift Package Manager / Xcode-generated
 .swiftpm/
+
+# Local verification caches
+.cache/
+.home/
+.tmp/
 
 # macOS
 .DS_Store

@@ -1,26 +1,13 @@
-//
-//  ContentView.swift
-//  GreenhouseTwin
-//
-//  Created by lokki on 2026/3/24.
-//
-
 import SwiftUI
-import RealityKit
-import RealityKitContent
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Model3D(named: "Scene", bundle: realityKitContentBundle)
-                .padding(.bottom, 50)
+    let appModel: AppModel
 
-            Text("Hello, world!")
-        }
-        .padding()
+    var body: some View {
+        MainControlWindowView(appModel: appModel)
     }
 }
 
 #Preview(windowStyle: .automatic) {
-    ContentView()
+    ContentView(appModel: AppModel())
 }
