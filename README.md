@@ -1,32 +1,67 @@
 # GreenhouseTwin
 
-GreenhouseTwin is an early-stage visionOS research prototype for a greenhouse digital twin. The current milestone is `v0.3`: a conservative immersive build that combines plain Swift domain models, a deterministic simulation core, lightweight physiological heuristics, and floating spatial dashboards anchored to greenhouse entities.
+GreenhouseTwin is a visionOS research prototype for a greenhouse digital twin. It is being built as a maintainable, simulation-first project rather than a flashy demo: the goal is to validate architecture, physiological logic, and spatial data presentation before moving toward real greenhouse integration.
 
-## Version status
+## Current milestone
 
-- `v0.3` is intentionally pre-v1.
-- The app is useful as a research and portfolio prototype, but it is still validating architecture, simulation behavior, and immersive UI readability.
-- It should not be described as a finished `v1` product baseline yet.
+The current project state is `v0.3`.
 
-## Current scope
+`v0.3` is intentionally pre-v1. It is useful as a prototype and portfolio piece, but it is still in the stage of proving:
 
-- Compact SwiftUI control window for entering and controlling the immersive experience
-- Immersive visionOS scene with attached zone and plant data panels
-- Simplified plant growth simulation using photosynthesis vs. respiration heuristics
-- Gauge-based climate indicators and short growth-trend history in plant panels
-- Unit tests for deterministic simulation, stress response, death transition, and history retention
+- the core domain model
+- the simulation loop
+- the immersive panel UX
+- the overall project structure for future expansion
 
-## Repo map
+## What the app currently includes
 
-- `/Users/mike/Desktop/GreenhouseTwin/GreenhouseTwin/App`: app composition and root model
-- `/Users/mike/Desktop/GreenhouseTwin/GreenhouseTwin/Domain`: pure model vocabulary
-- `/Users/mike/Desktop/GreenhouseTwin/GreenhouseTwin/Simulation`: deterministic simulation logic
-- `/Users/mike/Desktop/GreenhouseTwin/GreenhouseTwin/SampleData`: mock greenhouse layouts, species presets, and scenarios
-- `/Users/mike/Desktop/GreenhouseTwin/GreenhouseTwin/Presentation`: control window, floating panels, gauges, and trend views
-- `/Users/mike/Desktop/GreenhouseTwin/GreenhouseTwin/Spatial`: RealityKit scene, attachment anchoring, and plant/zone panel placement
-- `/Users/mike/Desktop/GreenhouseTwin/GreenhouseTwinTests`: unit tests
-- `/Users/mike/Desktop/GreenhouseTwin/Docs`: architecture notes and next steps
+- A visionOS control window for entering and controlling the immersive scene
+- An `ImmersiveSpace` with greenhouse zones and plant markers rendered using simple RealityKit primitives
+- Floating SwiftUI panels attached to zones and plants
+- A simplified plant model using photosynthesis gain, respiration cost, and stress effects
+- Climate target gauges for zone panels
+- Short growth-trend history for plant panels
+- Unit tests for deterministic stepping, stress behavior, death transition, and history retention
 
-## Running
+## What it does not include yet
 
-Open `/Users/mike/Desktop/GreenhouseTwin/GreenhouseTwin.xcodeproj` in Xcode and run the `GreenhouseTwin` scheme against a visionOS simulator. The app does not require Vision Pro hardware, networking, or backend services.
+- Real sensor ingestion
+- Networking, databases, or cloud services
+- Detailed greenhouse geometry
+- Photoreal plant rendering
+- Computer vision or AR reconstruction
+- Production-grade crop physiology
+
+## Project structure
+
+- `GreenhouseTwin/App`: app lifecycle and root app state
+- `GreenhouseTwin/Domain`: greenhouse, plant, environment, and snapshot models
+- `GreenhouseTwin/Simulation`: simulation engine and plant growth logic
+- `GreenhouseTwin/SampleData`: mock study data, species presets, and scenario definitions
+- `GreenhouseTwin/Presentation`: SwiftUI control window, floating panels, gauges, and trend views
+- `GreenhouseTwin/Spatial`: RealityKit scene setup, attachment anchoring, and spatial interaction
+- `GreenhouseTwinTests`: unit tests for domain and simulation behavior
+- `Docs`: architecture notes and forward-looking project guidance
+
+## Running locally
+
+1. Open `GreenhouseTwin.xcodeproj` in Xcode.
+2. Select the `GreenhouseTwin` scheme.
+3. Run it on a visionOS simulator.
+
+The project does not require Vision Pro hardware, a backend, or any external services.
+
+## Running tests
+
+Use Xcode’s test action for the `GreenhouseTwin` scheme, or run:
+
+```bash
+xcodebuild -project GreenhouseTwin.xcodeproj -scheme GreenhouseTwin -destination 'platform=visionOS Simulator,id=<SIMULATOR-ID>' test
+```
+
+## Near-term direction
+
+- Improve spatial dashboard readability and attachment behavior
+- Refine physiological heuristics with better research grounding
+- Add clearer separation between simulated state and future observed greenhouse data
+- Expand the prototype without collapsing domain and simulation logic into the UI layer
