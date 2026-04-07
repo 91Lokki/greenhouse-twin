@@ -2,7 +2,7 @@
 
 ## Intent
 
-GreenhouseTwin v1 is structured as a research foundation rather than a polished product demo. The design goal is to keep domain and simulation logic plain, testable, and reusable while still giving the project a spatial UI surface that is appropriate for visionOS.
+GreenhouseTwin `v0.3` is an immersive research prototype rather than a polished product release. The design goal is to keep domain and simulation logic plain, testable, and reusable while validating a readable visionOS spatial UI around that core.
 
 ## Layers
 
@@ -16,7 +16,7 @@ GreenhouseTwin v1 is structured as a research foundation rather than a polished 
 
 - Deterministic discrete-time stepping with a default cadence of one simulated hour
 - Scenario-driven environment values instead of control-system or HVAC physics
-- Proxy plant-growth logic based on temperature, light, and moisture response factors
+- Proxy plant-growth logic based on photosynthesis gain, respiration cost, and stress penalties
 
 ### SampleData
 
@@ -25,26 +25,26 @@ GreenhouseTwin v1 is structured as a research foundation rather than a polished 
 
 ### Presentation
 
-- Dashboard-oriented SwiftUI window UI
-- `DashboardViewModel` owns playback, reset, and snapshot stepping
-- Views consume derived summary data instead of embedding simulation rules
+- A compact SwiftUI control window stays available outside the immersive space
+- `GreenhouseExperienceViewModel` owns playback, reset, snapshot stepping, focus state, and lightweight history buffers
+- Floating SwiftUI panels consume derived summary data instead of embedding simulation rules
 
 ### Spatial
 
-- Minimal RealityKit rendering using generated primitives
+- Immersive RealityKit rendering still uses generated primitives
 - Zone blocks and plant markers are schematic placeholders, not final geometry
-- The goal is to validate data-to-3D mapping early without committing to immersive scope
+- SwiftUI attachments are anchored near greenhouse entities to validate data-to-3D mapping and spatial readability
 
 ## State flow
 
 1. `ResearchBaseline` creates the greenhouse definition, species presets, scenario, and initial snapshot.
-2. `AppModel` owns a single `DashboardViewModel`.
-3. `DashboardViewModel` advances `GreenhouseSnapshot` through `GreenhouseSimulator`.
-4. SwiftUI dashboard sections and the RealityKit overview render directly from the current snapshot.
+2. `AppModel` owns a single `GreenhouseExperienceViewModel`.
+3. `GreenhouseExperienceViewModel` advances `GreenhouseSnapshot` through `GreenhouseSimulator`.
+4. The control window, floating panels, and RealityKit scene all render directly from the current snapshot.
 
 ## Why this stays simple
 
 - No networking, persistence, or cloud services
 - No protocol-heavy abstraction layers
 - No attempt to present the simulation as a full scientific greenhouse model
-- No immersive or hardware-specific features in v1
+- No photoreal greenhouse geometry, backend integration, or production hardware assumptions

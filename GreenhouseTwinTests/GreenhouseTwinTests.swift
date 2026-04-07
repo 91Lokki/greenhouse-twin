@@ -65,6 +65,33 @@ final class GreenhouseTwinTests: XCTestCase {
         XCTAssertLessThan(next.lastGrowthRate, 0)
     }
 
+    func testNightRespirationOutpacesPhotosynthesisUnderHeatStress() throws {
+        let study = ResearchBaseline.study
+        let species = try XCTUnwrap(study.speciesByID["tomato"])
+        let model = PlantGrowthModel()
+        let current = PlantState(
+            ageDays: 18,
+            sizeIndex: 0.34,
+            biomassProxy: 0.31,
+            healthScore: 0.82,
+            stage: .vegetative,
+            lastGrowthRate: 0
+        )
+        let environment = EnvironmentState(
+            timestamp: study.initialSnapshot.timestamp,
+            temperatureC: species.targetEnvironment.temperatureC.maximum + 7.0,
+            relativeHumidityPercent: species.targetEnvironment.relativeHumidityPercent.midpoint,
+            co2PPM: species.targetEnvironment.co2PPM.midpoint,
+            lightPPFD: 0,
+            substrateMoisturePercent: species.targetEnvironment.substrateMoisturePercent.midpoint
+        )
+
+        let next = model.nextState(species: species, currentState: current, environment: environment, deltaHours: 12)
+
+        XCTAssertLessThan(next.biomassProxy, current.biomassProxy)
+        XCTAssertLessThan(next.lastGrowthRate, 0)
+    }
+
     func testStageTransitionsReachHarvestableUnderStableConditions() throws {
         let study = ResearchBaseline.study
         let species = try XCTUnwrap(study.speciesByID["tomato"])
@@ -86,6 +113,37 @@ final class GreenhouseTwinTests: XCTestCase {
 
         XCTAssertEqual(state.stage, .harvestable)
         XCTAssertGreaterThan(state.biomassProxy, species.stageThresholds.harvestBiomass)
+    }
+
+    func testCriticalHealthPersistenceTransitionsPlantToDead() throws {
+        let study = ResearchBaseline.study
+        let species = try XCTUnwrap(study.speciesByID["lettuce"])
+        let model = PlantGrowthModel()
+        let environment = EnvironmentState(
+            timestamp: study.initialSnapshot.timestamp,
+            temperatureC: species.targetEnvironment.temperatureC.maximum + 10.0,
+            relativeHumidityPercent: species.targetEnvironment.relativeHumidityPercent.minimum - 20.0,
+            co2PPM: species.targetEnvironment.co2PPM.minimum,
+            lightPPFD: 0,
+            substrateMoisturePercent: species.targetEnvironment.substrateMoisturePercent.minimum - 35.0
+        )
+
+        var state = PlantState(
+            ageDays: 9,
+            sizeIndex: 0.18,
+            biomassProxy: 0.15,
+            healthScore: 0.09,
+            stage: .vegetative,
+            lastGrowthRate: 0
+        )
+
+        for _ in 0..<25 {
+            state = model.nextState(species: species, currentState: state, environment: environment, deltaHours: 1)
+        }
+
+        XCTAssertEqual(state.stage, .dead)
+        XCTAssertEqual(state.healthScore, 0)
+        XCTAssertGreaterThan(state.lowHealthDurationHours, 24)
     }
 
     func testScenarioClampsOutOfBoundsEnvironmentValues() {
@@ -134,5 +192,17 @@ final class GreenhouseTwinTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(sample.relativeHumidityPercent, 0)
         XCTAssertLessThanOrEqual(sample.lightPPFD, 1_500)
         XCTAssertGreaterThanOrEqual(sample.substrateMoisturePercent, 0)
+    }
+
+    func testExperienceViewModelRetainsTwentyFourStepsOfHistory() {
+        let viewModel = GreenhouseExperienceViewModel(study: ResearchBaseline.study)
+
+        for _ in 0..<30 {
+            viewModel.step()
+        }
+
+        XCTAssertEqual(viewModel.averageHealthHistory.count, 24)
+        let plantTrends = viewModel.plantPanelModels.map(\.growthTrend.count)
+        XCTAssertTrue(plantTrends.allSatisfy { $0 == 24 })
     }
 }

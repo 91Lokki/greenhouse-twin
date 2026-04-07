@@ -9,7 +9,7 @@ struct GreenhouseTwinApp: App {
         WindowGroup {
             ContentView(appModel: appModel)
         }
-        .defaultSize(width: 620, height: 540)
+        .defaultSize(width: 820, height: 760)
 
         ImmersiveSpace(id: AppModel.immersiveSpaceID) {
             GreenhouseSpatialOverview(viewModel: appModel.experienceViewModel)

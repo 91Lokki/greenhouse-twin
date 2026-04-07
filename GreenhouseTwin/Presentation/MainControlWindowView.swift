@@ -14,30 +14,34 @@ struct MainControlWindowView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            header
-            immersivePanel
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 24) {
+                header
+                immersivePanel
 
-            GlobalControlPanel(
-                model: viewModel.globalControlModel,
-                density: .window,
-                onTogglePlayback: viewModel.togglePlayback,
-                onStep: viewModel.step,
-                onReset: viewModel.reset
-            )
+                GlobalControlPanel(
+                    model: viewModel.globalControlModel,
+                    density: .window,
+                    onTogglePlayback: viewModel.togglePlayback,
+                    onStep: viewModel.step,
+                    onReset: viewModel.reset
+                )
+            }
+            .frame(maxWidth: 760, alignment: .leading)
+            .padding(32)
         }
-        .padding(28)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(viewModel.study.title)
-                .font(.largeTitle)
+                .font(.largeTitle.weight(.bold))
                 .fontWeight(.semibold)
             Text(viewModel.greenhouse.description)
-                .font(.body)
+                .font(.title3)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             Text("Window controls stay available while the immersive greenhouse is open.")
                 .font(.callout)
                 .foregroundStyle(.tertiary)
@@ -47,7 +51,8 @@ struct MainControlWindowView: View {
     private var immersivePanel: some View {
         FloatingPanelSurface(
             title: "Immersive Greenhouse",
-            subtitle: "Open the shared spatial scene and inspect plant or zone data in place."
+            subtitle: "Open the shared spatial scene and inspect plant or zone data in place.",
+            contentSpacing: 18
         ) {
             VStack(alignment: .leading, spacing: 14) {
                 Button(immersiveButtonTitle) {
@@ -57,6 +62,7 @@ struct MainControlWindowView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(appModel.immersivePhase == .opening)
+                .controlSize(.large)
 
                 Text(appModel.immersivePhase.statusText)
                     .font(.caption)

@@ -4,6 +4,7 @@ struct FloatingPanelSurface<Content: View>: View {
     var title: String?
     var subtitle: String?
     var width: CGFloat?
+    var contentSpacing: CGFloat = 18
 
     private let content: Content
 
@@ -11,26 +12,29 @@ struct FloatingPanelSurface<Content: View>: View {
         title: String? = nil,
         subtitle: String? = nil,
         width: CGFloat? = nil,
+        contentSpacing: CGFloat = 18,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self.subtitle = subtitle
         self.width = width
+        self.contentSpacing = contentSpacing
         self.content = content()
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: contentSpacing) {
             if title != nil || subtitle != nil {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
                     if let title {
                         Text(title)
-                            .font(.headline)
+                            .font(.title3.weight(.semibold))
                     }
                     if let subtitle {
                         Text(subtitle)
-                            .font(.caption)
+                            .font(.callout)
                             .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
@@ -38,7 +42,7 @@ struct FloatingPanelSurface<Content: View>: View {
             content
         }
         .frame(width: width, alignment: .leading)
-        .padding(20)
-        .glassBackgroundEffect(in: .rect(cornerRadius: 28))
+        .padding(24)
+        .glassBackgroundEffect(in: .rect(cornerRadius: 30))
     }
 }

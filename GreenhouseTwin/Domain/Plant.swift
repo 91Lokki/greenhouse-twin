@@ -18,6 +18,7 @@ enum PlantStage: String, CaseIterable, Codable, Hashable, Sendable {
     case flowering
     case fruiting
     case harvestable
+    case dead
 }
 
 struct PlantStageThresholds: Hashable, Sendable {
@@ -68,4 +69,5 @@ struct PlantState: Hashable, Sendable {
     var healthScore: Double
     var stage: PlantStage
     var lastGrowthRate: Double
+    var lowHealthDurationHours: Double = 0
 }

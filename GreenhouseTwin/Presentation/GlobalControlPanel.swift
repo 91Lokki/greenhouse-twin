@@ -16,16 +16,17 @@ struct GlobalControlPanel: View {
         FloatingPanelSurface(
             title: density == .window ? "Simulation Controls" : "Global Controls",
             subtitle: density == .window ? model.scenarioName : "In-space stepping for the current greenhouse state.",
-            width: density == .spatial ? 380 : nil
+            width: density == .spatial ? 470 : nil,
+            contentSpacing: density == .spatial ? 20 : 18
         ) {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: density == .spatial ? 18 : 16) {
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Simulated Time")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Text(model.timestamp)
-                            .font(density == .window ? .title3.weight(.semibold) : .headline)
+                            .font(density == .window ? .title2.weight(.semibold) : .title3.weight(.semibold))
                             .monospacedDigit()
                     }
 
@@ -39,10 +40,10 @@ struct GlobalControlPanel: View {
                         .clipShape(Capsule())
                 }
 
-                HStack(spacing: 10) {
-                    MetricBadge(title: "Health", value: model.averageHealth)
-                    MetricBadge(title: "Alerts", value: model.alertCount)
-                    MetricBadge(title: "Biomass", value: model.biomassProxy)
+                HStack(spacing: 12) {
+                    MetricBadge(title: "Health", value: model.averageHealth, emphasis: density)
+                    MetricBadge(title: "Alerts", value: model.alertCount, emphasis: density)
+                    MetricBadge(title: "Biomass", value: model.biomassProxy, emphasis: density)
                 }
 
                 HStack(spacing: 12) {
@@ -50,17 +51,20 @@ struct GlobalControlPanel: View {
                         onTogglePlayback()
                     }
                     .buttonStyle(.borderedProminent)
+                    .controlSize(density == .window ? .large : .regular)
 
                     Button("Step") {
                         onStep()
                     }
                     .buttonStyle(.bordered)
                     .disabled(model.isRunning)
+                    .controlSize(density == .window ? .large : .regular)
 
                     Button("Reset") {
                         onReset()
                     }
                     .buttonStyle(.bordered)
+                    .controlSize(density == .window ? .large : .regular)
                 }
 
                 Text(model.statusLine)
@@ -74,6 +78,7 @@ struct GlobalControlPanel: View {
 private struct MetricBadge: View {
     var title: String
     var value: String
+    var emphasis: GlobalControlPanel.Density
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -81,12 +86,12 @@ private struct MetricBadge: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Text(value)
-                .font(.headline)
+                .font(emphasis == .window ? .title3.weight(.semibold) : .headline)
                 .monospacedDigit()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }

@@ -14,7 +14,8 @@
 ## Spatial visualization
 
 - Replace schematic boxes and spheres with better greenhouse geometry only after the data mapping is stable.
-- Add richer annotations, comparative views, and spatial drill-downs before considering fully immersive spaces.
+- Improve attachment readability with distance-aware scaling, better occlusion handling, and cleaner comparative panels.
+- Add richer annotations and spatial drill-downs on top of the current immersive foundation instead of rebuilding the scene model again.
 
 ## Research and portfolio value
 

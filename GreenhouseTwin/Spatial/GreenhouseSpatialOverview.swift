@@ -178,6 +178,9 @@ struct GreenhouseSpatialOverview: View {
 private final class SpatialSceneState {
     private let floorDepth: Float = 4.8
     private let floorWidth: Float = 5.2
+    private let globalControlScale: Float = 0.92
+    private let zonePanelScale: Float = 0.92
+    private let plantPanelScale: Float = 0.86
 
     private var root: Entity?
     private var globalControlAnchor: Entity?
@@ -210,7 +213,7 @@ private final class SpatialSceneState {
 
         let controlAnchor = Entity()
         controlAnchor.name = GreenhouseSpatialIDs.globalControlAnchor
-        controlAnchor.position = [0, 1.25, -0.9]
+        controlAnchor.position = [0, 1.16, -0.72]
         sceneRoot.addChild(controlAnchor)
         globalControlAnchor = controlAnchor
 
@@ -232,9 +235,9 @@ private final class SpatialSceneState {
             let zonePanelAnchor = Entity()
             zonePanelAnchor.name = GreenhouseSpatialIDs.zonePanelAnchor(zoneID: zone.id)
             zonePanelAnchor.position = [
-                zone.layout.centerX < 0.5 ? -(bedSize.x / 2.0) - 0.32 : (bedSize.x / 2.0) + 0.32,
-                1.02,
-                -0.3
+                zone.layout.centerX < 0.5 ? (bedSize.x / 2.0) + 0.24 : -(bedSize.x / 2.0) - 0.24,
+                1.12,
+                -0.06
             ]
             zoneRoot.addChild(zonePanelAnchor)
             zonePanelAnchors[zone.id] = zonePanelAnchor
@@ -258,7 +261,11 @@ private final class SpatialSceneState {
 
                 let panelAnchor = Entity()
                 panelAnchor.name = GreenhouseSpatialIDs.plantPanelAnchor(plantID: plant.id)
-                panelAnchor.position = [0.28, 0.46, 0]
+                panelAnchor.position = [
+                    zone.layout.centerX < 0.5 ? 0.42 : -0.42,
+                    0.58,
+                    0.06
+                ]
                 plantRoot.addChild(panelAnchor)
                 plantPanelAnchors[plant.id] = panelAnchor
 
@@ -309,7 +316,7 @@ private final class SpatialSceneState {
             let globalControlAnchor,
             let controlAttachment = attachments.entity(for: GreenhouseSpatialIDs.globalControlAttachment)
         {
-            attach(controlAttachment, to: globalControlAnchor, scale: 0.75)
+            attach(controlAttachment, to: globalControlAnchor, scale: globalControlScale)
         }
 
         for zone in greenhouse.zones {
@@ -320,7 +327,7 @@ private final class SpatialSceneState {
                 continue
             }
 
-            attach(attachment, to: anchor, scale: 0.72)
+            attach(attachment, to: anchor, scale: zonePanelScale)
         }
 
         for plant in greenhouse.plants {
@@ -330,7 +337,7 @@ private final class SpatialSceneState {
             }
 
             if plant.id == activePlantPanelID, let anchor = plantPanelAnchors[plant.id] {
-                attach(attachment, to: anchor, scale: 0.68)
+                attach(attachment, to: anchor, scale: plantPanelScale)
             } else {
                 attachment.removeFromParent()
                 attachment.isEnabled = false
@@ -429,6 +436,8 @@ private final class SpatialSceneState {
             stageColor = UIColor(red: 0.88, green: 0.42, blue: 0.25, alpha: 1.0)
         case .harvestable:
             stageColor = UIColor(red: 0.67, green: 0.31, blue: 0.20, alpha: 1.0)
+        case .dead:
+            stageColor = UIColor(red: 0.36, green: 0.36, blue: 0.38, alpha: 1.0)
         }
 
         return stageColor.withAlphaComponent(CGFloat(max(state.healthScore, 0.35)))

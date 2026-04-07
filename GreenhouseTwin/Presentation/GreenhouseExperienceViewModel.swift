@@ -1,6 +1,21 @@
 import Foundation
 import Observation
 
+enum GaugeDeviationDirection: Hashable {
+    case belowTarget
+    case withinTarget
+    case aboveTarget
+}
+
+struct ZoneMetricGaugeModel: Identifiable, Hashable {
+    let id: String
+    var title: String
+    var valueText: String
+    var positionRatio: Double
+    var deviationRatio: Double
+    var deviationDirection: GaugeDeviationDirection
+}
+
 struct GlobalControlPanelModel: Hashable {
     var scenarioName: String
     var timestamp: String
@@ -15,10 +30,7 @@ struct ZoneClimatePanelModel: Identifiable, Hashable {
     let id: String
     var name: String
     var detail: String
-    var temperature: String
-    var humidity: String
-    var light: String
-    var moisture: String
+    var indicators: [ZoneMetricGaugeModel]
     var driftSummary: String
 }
 
@@ -32,6 +44,8 @@ struct PlantDataPanelModel: Identifiable, Hashable {
     var biomass: String
     var growthRate: String
     var isPinned: Bool
+    var isDead: Bool
+    var growthTrend: [Double]
 }
 
 @MainActor
@@ -46,6 +60,7 @@ final class GreenhouseExperienceViewModel {
     var isRunning = false
     var focusedPlantID: String?
     var pinnedPlantID: String?
+    var averageHealthHistory: [Double] = []
 
     @ObservationIgnored
     private let simulator = GreenhouseSimulator()
@@ -57,7 +72,13 @@ final class GreenhouseExperienceViewModel {
     private let zoneByID: [String: GreenhouseZone]
 
     @ObservationIgnored
-    private var playbackTask: Task<Void, Never>?
+    private var playbackTimer: Timer?
+
+    @ObservationIgnored
+    private let historyLimit = 24
+
+    @ObservationIgnored
+    private var growthRateHistoryByPlantID: [String: [Double]] = [:]
 
     init(study: GreenhouseStudy, simulationConfig: SimulationConfig? = nil) {
         self.study = study
@@ -67,6 +88,11 @@ final class GreenhouseExperienceViewModel {
         self.simulationConfig = simulationConfig ?? .researchDefault
         self.speciesByID = study.speciesByID
         self.zoneByID = Dictionary(uniqueKeysWithValues: study.greenhouse.zones.map { ($0.id, $0) })
+        seedHistory(with: study.initialSnapshot)
+    }
+
+    deinit {
+        playbackTimer?.invalidate()
     }
 
     var activePlantPanelID: String? {
@@ -95,10 +121,40 @@ final class GreenhouseExperienceViewModel {
                 id: zone.id,
                 name: zone.name,
                 detail: zone.description,
-                temperature: formattedNumber(environment.temperatureC, fractionDigits: 1) + " C",
-                humidity: formattedNumber(environment.relativeHumidityPercent, fractionDigits: 0) + " %",
-                light: formattedNumber(environment.lightPPFD, fractionDigits: 0) + " PPFD",
-                moisture: formattedNumber(environment.substrateMoisturePercent, fractionDigits: 0) + " %",
+                indicators: [
+                    makeMetricGauge(
+                        id: "\(zone.id)-temperature",
+                        title: "Temperature",
+                        value: environment.temperatureC,
+                        preferredRange: zone.targets.temperatureC,
+                        suffix: " C",
+                        fractionDigits: 1
+                    ),
+                    makeMetricGauge(
+                        id: "\(zone.id)-humidity",
+                        title: "Humidity",
+                        value: environment.relativeHumidityPercent,
+                        preferredRange: zone.targets.relativeHumidityPercent,
+                        suffix: " %",
+                        fractionDigits: 0
+                    ),
+                    makeMetricGauge(
+                        id: "\(zone.id)-light",
+                        title: "Light",
+                        value: environment.lightPPFD,
+                        preferredRange: zone.targets.lightPPFD,
+                        suffix: " PPFD",
+                        fractionDigits: 0
+                    ),
+                    makeMetricGauge(
+                        id: "\(zone.id)-substrate",
+                        title: "Substrate",
+                        value: environment.substrateMoisturePercent,
+                        preferredRange: zone.targets.substrateMoisturePercent,
+                        suffix: " %",
+                        fractionDigits: 0
+                    )
+                ],
                 driftSummary: zoneDriftSummary(for: environment, targets: zone.targets)
             )
         }
@@ -122,7 +178,9 @@ final class GreenhouseExperienceViewModel {
                 health: state.healthScore.formatted(.percent.precision(.fractionLength(0))),
                 biomass: state.biomassProxy.formatted(.number.precision(.fractionLength(2))),
                 growthRate: state.lastGrowthRate.formatted(.number.precision(.fractionLength(2))) + " / day",
-                isPinned: plant.id == pinnedPlantID
+                isPinned: plant.id == pinnedPlantID,
+                isDead: state.stage == .dead,
+                growthTrend: growthRateHistoryByPlantID[plant.id] ?? [state.lastGrowthRate]
             )
         }
     }
@@ -143,6 +201,7 @@ final class GreenhouseExperienceViewModel {
             scenario: scenario,
             deltaHours: simulationConfig.defaultStepHours
         )
+        recordHistory(for: snapshot)
     }
 
     func reset() {
@@ -150,6 +209,7 @@ final class GreenhouseExperienceViewModel {
         focusedPlantID = nil
         pinnedPlantID = nil
         snapshot = study.initialSnapshot
+        seedHistory(with: snapshot)
     }
 
     func setFocusedPlant(_ plantID: String?) {
@@ -182,30 +242,67 @@ final class GreenhouseExperienceViewModel {
     }
 
     private func startPlayback() {
-        guard playbackTask == nil else {
+        guard playbackTimer == nil else {
             return
         }
 
         isRunning = true
-        playbackTask = Task { [weak self] in
-            while let self, !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(simulationConfig.playbackIntervalSeconds))
-                guard !Task.isCancelled else {
-                    break
-                }
-                self.step()
+        playbackTimer = Timer.scheduledTimer(withTimeInterval: simulationConfig.playbackIntervalSeconds, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.step()
             }
         }
     }
 
     private func stopPlayback() {
         isRunning = false
-        playbackTask?.cancel()
-        playbackTask = nil
+        playbackTimer?.invalidate()
+        playbackTimer = nil
+    }
+
+    private func seedHistory(with snapshot: GreenhouseSnapshot) {
+        averageHealthHistory = [snapshot.averageHealthScore]
+        growthRateHistoryByPlantID = Dictionary(
+            uniqueKeysWithValues: snapshot.plantStates.map { plantID, state in
+                (plantID, [state.lastGrowthRate])
+            }
+        )
+    }
+
+    private func recordHistory(for snapshot: GreenhouseSnapshot) {
+        averageHealthHistory.append(snapshot.averageHealthScore)
+        averageHealthHistory = trimmed(averageHealthHistory)
+
+        for (plantID, state) in snapshot.plantStates {
+            growthRateHistoryByPlantID[plantID, default: []].append(state.lastGrowthRate)
+            growthRateHistoryByPlantID[plantID] = trimmed(growthRateHistoryByPlantID[plantID] ?? [])
+        }
+    }
+
+    private func trimmed(_ values: [Double]) -> [Double] {
+        Array(values.suffix(historyLimit))
     }
 
     private func formattedNumber(_ value: Double, fractionDigits: Int) -> String {
         value.formatted(.number.precision(.fractionLength(fractionDigits)))
+    }
+
+    private func makeMetricGauge(
+        id: String,
+        title: String,
+        value: Double,
+        preferredRange: TargetRange,
+        suffix: String,
+        fractionDigits: Int
+    ) -> ZoneMetricGaugeModel {
+        ZoneMetricGaugeModel(
+            id: id,
+            title: title,
+            valueText: formattedNumber(value, fractionDigits: fractionDigits) + suffix,
+            positionRatio: clamp((value - preferredRange.minimum) / preferredRange.span, minimum: 0.0, maximum: 1.0),
+            deviationRatio: clamp(preferredRange.normalizedDeviation(from: value), minimum: 0.0, maximum: 1.0),
+            deviationDirection: gaugeDirection(for: value, preferredRange: preferredRange)
+        )
     }
 
     private func zoneDriftSummary(for environment: EnvironmentState, targets: EnvironmentTargets) -> String {
@@ -225,5 +322,19 @@ final class GreenhouseExperienceViewModel {
         }
 
         return drifts.isEmpty ? "Within current target ranges" : "Drifted: " + drifts.joined(separator: ", ")
+    }
+
+    private func gaugeDirection(for value: Double, preferredRange: TargetRange) -> GaugeDeviationDirection {
+        if value < preferredRange.minimum {
+            return .belowTarget
+        }
+        if value > preferredRange.maximum {
+            return .aboveTarget
+        }
+        return .withinTarget
+    }
+
+    private func clamp(_ value: Double, minimum: Double, maximum: Double) -> Double {
+        min(max(value, minimum), maximum)
     }
 }

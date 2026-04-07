@@ -195,8 +195,8 @@ enum ResearchBaseline {
         )
 
         return GreenhouseStudy(
-            title: "GreenhouseTwin v1 Research Foundation",
-            summary: "A window-first digital twin baseline focused on domain clarity, deterministic simulation, and minimal spatial context.",
+            title: "GreenhouseTwin v0.3 Immersive Research Prototype",
+            summary: "An immersive digital twin prototype focused on domain clarity, deterministic simulation, and readable spatial instrumentation.",
             greenhouse: greenhouse,
             speciesCatalog: speciesCatalog,
             initialSnapshot: hydratedSnapshot,
